@@ -1,0 +1,38 @@
+server:
+  port:8081
+
+spring:
+  application:
+    name: kitchen-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kitchen_db
+    username: postgres
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+
+
+  kafka:
+    # Connecting from Intellij (localhost) to your Dockerized kafka broker
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: kitchen-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "*"
+
+
