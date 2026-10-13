@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   mysql-db:
@@ -24,17 +24,21 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
-    image: confluentinc/cp-kafka:7.4.0 # Changed from latest
+    image: confluentinc/cp-kafka:7.4.0
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
 
   order-service:
     build:
@@ -50,3 +54,19 @@ services:
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD} # This must match MYSQL_ROOT_PASSWORD exactly
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+  kitchen-service:
+    build:
+      context: ./kitchen-service
+    ports:
+      - "8081:8081"
+    environment:
+      # This overrides 'localhost' to use the container names inside the Docker network
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/kitchen_db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_DATASOURCE_USERNAME=postgres
+      # This pulls the hidden password from your .env file
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      - kafka
+      - postgres-db

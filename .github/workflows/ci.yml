@@ -23,3 +23,8 @@ jobs:
         run: |
           cd order-service
           mvn clean package -DskipTests
+
+      - name: Build Kitchen Service with Maven
+        run: |
+          cd kitchen-service
+          mvn clean package -DskipTests

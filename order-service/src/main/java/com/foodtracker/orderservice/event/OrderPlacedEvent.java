@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OrderPlacedEvent {
     private Long orderId;
+    private String customerName;
     private String foodItem;
-    private Integer quantity;
+    private int quantity;
 }

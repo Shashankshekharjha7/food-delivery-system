@@ -20,10 +20,10 @@ public class OrderService {
 
     @Transactional
     public void placeOrder(OrderRequest request){
-        //1. Create and save the order entity
+        // 1. Create and save the order entity
         Order order = Order.builder()
                 .customerName(request.getCustomerName())
-                .foodItems(request.getFoodItem())
+                .foodItems(request.getFoodItem()) // Entity uses plural
                 .quantity(request.getQuantity())
                 .status("PENDING")
                 .build();
@@ -31,15 +31,21 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Order saved to database with ID: {}", savedOrder.getId());
 
-        //2. Create the kafka event
+        // 2. Create the Kafka event (mapped perfectly for the Kitchen Service)
         OrderPlacedEvent event = new OrderPlacedEvent(
                 savedOrder.getId(),
+                savedOrder.getCustomerName(),
                 savedOrder.getFoodItems(),
                 savedOrder.getQuantity()
         );
 
-        //3. PUblish to kafka topic 'order-events'
-        kafkaTemplate.send("order-events", event);
-        log.info("OrderPlacedEvent pushed to kafka for Order ID: {}", savedOrder.getId());
+        // 3. Publish to Kafka and FORCE a wait for confirmation
+        try {
+            kafkaTemplate.send("order-events", event).get(); // .get() blocks until Kafka replies
+            log.info("OrderPlacedEvent successfully ACKNOWLEDGED by Kafka for Order ID: {}", savedOrder.getId());
+        } catch (Exception e) {
+            log.error("🚨 CRITICAL: FAILED TO SEND MESSAGE TO KAFKA 🚨", e);
+            throw new RuntimeException("Kafka send failed!", e);
+        }
     }
 }
